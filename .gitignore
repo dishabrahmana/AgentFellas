@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+*.egg
+
+# Environment
+.env
+.env.local
+
+# Database
+*.db
+*.sqlite3
+data/
+
+# Logs
+logs/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Gmail credentials
+config/gmail_credentials.json
+config/*.json
+
+# Test & coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Docker
+.docker/
+docker-compose.override.yml
+
+# Project specific
+scripts/*.pyc

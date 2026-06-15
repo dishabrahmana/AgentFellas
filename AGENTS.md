@@ -1,0 +1,55 @@
+# WorkTracker AI Agent — Instruksi untuk AI Agent
+
+## Cara Membaca Project Ini
+
+1. **CONSTITUTION.md** adalah sumber kebenaran utama — baca ini dulu sebelum menyentuh kode apa pun
+2. **AGENTS.md** adalah file ini — instruksi khusus untuk AI agent
+3. Semua konfigurasi ada di `config/settings.py`
+4. Semua model database ada di `db/models.py`
+5. Semua CRUD ada di `db/repository.py`
+6. Handler Telegram ada di `bot/handlers/`
+7. AI/NLP logic ada di `bot/ai/`
+8. Business logic ada di `services/`
+
+## Aturan Umum untuk AI Agent
+
+1. **JANGAN** mengubah CONSTITUTION.md kecuali user meminta perubahan arsitektur
+2. **JANGAN** mengubah AGENTS.md kecuali user meminta
+3. **JANGAN** menambah komentar kode (tidak ada komentar di codebase ini)
+4. **WAJIB** baca CONSTITUTION.md dulu sebelum melakukan perubahan apa pun
+5. **WAJIB** update konstituen jika ada perubahan arsitektur/database/skema
+
+## Keyword untuk Menemukan Kode yang Relevan
+
+| Yang Dicari | Cari di |
+|-------------|---------|
+| Intent classification | `bot/ai/classifier.py` |
+| Entity extraction | `bot/ai/extractor.py` |
+| Command handler | `bot/handlers/commands.py` |
+| AI fallback handler | `bot/handlers/messages.py` |
+| Worklog CRUD | `services/worklog_service.py` |
+| Stakeholder CRUD | `services/stakeholder_service.py` |
+| Database model | `db/models.py` |
+| Repository | `db/repository.py` |
+| Gmail integration | `integrations/gmail_client.py` |
+| Settings | `config/settings.py` |
+
+## Saat Ada Error/Issue
+
+1. Cek logs: `journalctl -u worktracker -n 50 --no-pager`
+2. Cek file CONFIGURATION.md (jika user update environment)
+3. Cek isi database: jalankan `worktracker/scripts/db_inspect.py`
+4. Jangan asal restart — baca error log dulu
+
+## Saat User Minta Fitur Baru
+
+1. Baca CONSTITUTION.md — pastikan fitur sesuai arsitektur
+2. Cari kode yang mirip di codebase untuk dijadikan referensi
+3. Buat perubahan, pastikan type hints benar
+4. Update CONSTITUTION.md jika ada perubahan arsitektur
+
+## Konvensi Respons
+
+- Respons ke user dalam Bahasa Indonesia
+- Respons dari AI agent harus informatif, langsung ke inti
+- Jangan ajak diskusi panjang — langsung eksekusi
