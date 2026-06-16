@@ -56,6 +56,11 @@
 
 ## Riwayat Perubahan oleh AI Agent
 
+### 2026-06-16 — AI Personality Upgrade: Teman Curhat + Mentor
+- System prompt di `bot/ai/llm_client.py` diubah total — bot sekarang punya 3 peran: teman curhat (emotional intelligence), asisten pribadi (proaktif), mentor (saran & insight dari pengetahuan DeepSeek)
+- Temperature 0.7 → 0.8 (lebih natural, variatif)
+- Max tokens 800 → 1200 (respons lebih panjang untuk percakapan mendalam)
+
 ### 2026-06-16 — Fitur Prioritas Tinggi
 - `/export` — Export worklog ke CSV
 - `/work_edit` — Edit field worklog individual (title, description, status, priority, estimated_hours)
