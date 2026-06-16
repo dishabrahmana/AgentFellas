@@ -61,6 +61,10 @@
 - Temperature 0.7 → 0.8 (lebih natural, variatif)
 - Max tokens 800 → 1200 (respons lebih panjang untuk percakapan mendalam)
 
+### 2026-06-16 — JSON Parser Fix + History Consistency
+- `_parse_response()` di `llm_client.py` — ganti regex `\{.*\}` dengan `json.JSONDecoder.raw_decode()` untuk handle braces di dalam teks respons
+- Conversation history di `messages.py` — sekarang simpan FULL JSON result (bukan cuma teks) biar LLM konsisten format outputnya
+
 ### 2026-06-16 — Fitur Prioritas Tinggi
 - `/export` — Export worklog ke CSV
 - `/work_edit` — Edit field worklog individual (title, description, status, priority, estimated_hours)
