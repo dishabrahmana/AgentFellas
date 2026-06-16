@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+import csv
+import io
 from datetime import datetime
 
+from sqlalchemy import or_, select
 from telegram import Update
 from telegram.ext import ContextTypes
 
 from bot.ai.classifier import classify_and_extract
 from db.connection import async_session_factory
+from db.models import Interaction, Stakeholder, WorklogEntry
 from services.interaction_service import InteractionService
 from services.reminder_service import ReminderService
 from services.report_service import ReportService
@@ -52,7 +56,9 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "/work <judul> - Catat pekerjaan baru\n"
         "/work_done <id> - Tandai selesai\n"
         "/work_list - Lihat daftar aktif\n"
-        "/work_status - Status hari ini\n\n"
+        "/work_status - Status hari ini\n"
+        "/work_edit <id> <field=value> - Edit field worklog\n"
+        "/work_delete <id> - Hapus worklog\n\n"
         "*Stakeholder:*\n"
         "/stakeholder_add <nama> - Tambah stakeholder\n"
         "/stakeholder_list - Lihat semua\n"
@@ -62,9 +68,11 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "/actions - Lihat upcoming actions\n\n"
         "*Report:*\n"
         "/report - Report hari ini\n"
-        "/report_weekly - Report minggu ini\n\n"
+        "/report_weekly - Report minggu ini\n"
+        "/export - Export worklog ke CSV\n\n"
         "*Lainnya:*\n"
         "/remind <teks> in <waktu> - Set reminder\n"
+        "/search <kata kunci> - Cari worklog & stakeholder\n"
         "/ask <pertanyaan> - Tanya AI\n"
         "/health - Cek status bot",
         parse_mode="Markdown",
@@ -345,3 +353,160 @@ async def ask(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     result = await classify_and_extract(question, None)
     response = result.get("response", "Maaf, saya kurang paham.")
     await update.message.reply_text(response)
+
+
+async def export_csv(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user_id = str(update.effective_user.id)
+    async with async_session_factory() as session:
+        svc = WorklogService(session, user_id)
+        entries = await svc.list(limit=500)
+
+        if not entries:
+            await update.message.reply_text("📭 Belum ada worklog untuk di-export.")
+            return
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow([
+            "ID", "Title", "Description", "Status", "Priority",
+            "Start Time", "End Time", "Estimated Hours", "Actual Hours",
+            "Tags", "Created At",
+        ])
+        for w in entries:
+            writer.writerow([
+                w.id, w.title, w.description, w.status, w.priority,
+                str(w.start_time or ""), str(w.end_time or ""),
+                w.estimated_hours, w.actual_hours, w.tags,
+                str(w.created_at or ""),
+            ])
+
+        csv_bytes = output.getvalue().encode("utf-8")
+        await update.message.reply_document(
+            document=io.BytesIO(csv_bytes),
+            filename=f"worktracker_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+            caption="📊 Export worklog berhasil",
+        )
+
+
+async def work_edit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    args = context.args
+    if len(args) < 2:
+        await update.message.reply_text(
+            "Gunakan: /work_edit <id> <field=value>\n"
+            "Contoh: /work_edit 1 status=done\n"
+            "        /work_edit 1 title=\"fitur baru\" priority=high\n\n"
+            "Field: title, description, status, priority, estimated_hours"
+        )
+        return
+
+    try:
+        worklog_id = int(args[0])
+    except ValueError:
+        await update.message.reply_text("ID worklog harus angka.")
+        return
+
+    updates = {}
+    for arg in args[1:]:
+        if "=" in arg:
+            key, val = arg.split("=", 1)
+            key = key.strip().lower()
+            val = val.strip().strip('"')
+            if key == "estimated_hours":
+                try:
+                    val = float(val)
+                except ValueError:
+                    continue
+            updates[key] = val
+
+    if not updates:
+        await update.message.reply_text("Tidak ada field yang diupdate.")
+        return
+
+    user_id = str(update.effective_user.id)
+    async with async_session_factory() as session:
+        svc = WorklogService(session, user_id)
+        entry = await svc.update(worklog_id, **updates)
+        if entry:
+            await update.message.reply_text(
+                f"✅ Worklog diupdate:\n{format_worklog(entry)}",
+                parse_mode="Markdown",
+            )
+        else:
+            await update.message.reply_text("Worklog tidak ditemukan.")
+
+
+async def work_delete(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    args = context.args
+    if not args:
+        await update.message.reply_text("Gunakan: /work_delete <id>")
+        return
+
+    try:
+        worklog_id = int(args[0])
+    except ValueError:
+        await update.message.reply_text("ID harus angka.")
+        return
+
+    user_id = str(update.effective_user.id)
+    async with async_session_factory() as session:
+        svc = WorklogService(session, user_id)
+        entry = await svc.get(worklog_id)
+        if not entry:
+            await update.message.reply_text("Worklog tidak ditemukan.")
+            return
+        await svc.delete(worklog_id)
+        await update.message.reply_text(
+            f"🗑 Worklog #{worklog_id} **{entry.title}** dihapus.",
+            parse_mode="Markdown",
+        )
+
+
+async def search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    keyword = " ".join(context.args)
+    if not keyword:
+        await update.message.reply_text("Gunakan: /search <kata kunci>")
+        return
+
+    user_id = str(update.effective_user.id)
+    async with async_session_factory() as session:
+        wl_query = (
+            select(WorklogEntry)
+            .where(
+                WorklogEntry.user_id == user_id,
+                or_(
+                    WorklogEntry.title.ilike(f"%{keyword}%"),
+                    WorklogEntry.description.ilike(f"%{keyword}%"),
+                ),
+            )
+            .limit(10)
+        )
+        wl_result = await session.execute(wl_query)
+        worklogs = list(wl_result.scalars().all())
+
+        sh_query = (
+            select(Stakeholder)
+            .where(
+                Stakeholder.user_id == user_id,
+                or_(
+                    Stakeholder.name.ilike(f"%{keyword}%"),
+                    Stakeholder.company.ilike(f"%{keyword}%"),
+                ),
+            )
+            .limit(10)
+        )
+        sh_result = await session.execute(sh_query)
+        stakeholders = list(sh_result.scalars().all())
+
+        text = f"🔍 *Hasil pencarian:* `{keyword}`\n"
+        if worklogs:
+            text += f"\n📝 *Worklog ({len(worklogs)}):*\n"
+            for w in worklogs:
+                text += f"  • #{w.id} {w.title}\n"
+        if stakeholders:
+            text += f"\n👤 *Stakeholder ({len(stakeholders)}):*\n"
+            for s in stakeholders:
+                text += f"  • #{s.id} {s.name} ({s.company or '-'})\n"
+        if not worklogs and not stakeholders:
+            text += "\n(tidak ada hasil)"
+
+        await update.message.reply_text(text, parse_mode="Markdown")

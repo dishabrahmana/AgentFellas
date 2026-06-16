@@ -390,6 +390,19 @@ Semua konfigurasi via environment variables, didefinisikan di `.env`:
 
 ## 9. Changelog
 
+### 2026-06-16 — Fitur Prioritas Tinggi
+
+| Perubahan | Detail |
+|-----------|--------|
+| **Export CSV** | `/export` — export semua worklog ke file CSV |
+| **Edit Worklog** | `/work_edit <id> <field=value>` — edit field worklog individual |
+| **Delete Worklog** | `/work_delete <id>` — hapus worklog permanent |
+| **Search** | `/search <keyword>` — cari worklog & stakeholder berdasarkan keyword |
+| **Missing handlers** | 4 command handler baru: work_status, stakeholder_info, remind, ask |
+| **Missing intents** | 3 intent handler: STAKEHOLDER_INFO, INTERACTION_SUM, ASK_QUERY |
+| **Scheduler** | APScheduler integration untuk reminder check tiap 60 detik + Gmail polling |
+| **Gmail fix** | Wrapping sync Google API calls dengan `asyncio.to_thread()` untuk non-blocking |
+
 ### 2026-06-15 — Inisialisasi Proyek
 
 | Perubahan | Detail |

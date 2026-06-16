@@ -13,6 +13,7 @@ from telegram.ext import (
 
 from bot.handlers.commands import (
     ask,
+    export_csv,
     health,
     help_command,
     list_actions,
@@ -20,12 +21,15 @@ from bot.handlers.commands import (
     remind,
     report_daily,
     report_weekly,
+    search,
     stakeholder_add,
     stakeholder_info,
     stakeholder_list,
     start,
     work_create,
+    work_delete,
     work_done,
+    work_edit,
     work_list,
     work_status,
 )
@@ -75,8 +79,14 @@ def build_application() -> Application:
     app.add_handler(CommandHandler("meet", meeting_log))
     app.add_handler(CommandHandler("actions", list_actions))
 
+    app.add_handler(CommandHandler("work_edit", work_edit))
+    app.add_handler(CommandHandler("work_delete", work_delete))
+
     app.add_handler(CommandHandler("remind", remind))
     app.add_handler(CommandHandler("ask", ask))
+
+    app.add_handler(CommandHandler("export", export_csv))
+    app.add_handler(CommandHandler("search", search))
 
     # Message handler (natural language → AI)
     app.add_handler(

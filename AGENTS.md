@@ -53,3 +53,17 @@
 - Respons ke user dalam Bahasa Indonesia
 - Respons dari AI agent harus informatif, langsung ke inti
 - Jangan ajak diskusi panjang — langsung eksekusi
+
+## Riwayat Perubahan oleh AI Agent
+
+### 2026-06-16 — Fitur Prioritas Tinggi
+- `/export` — Export worklog ke CSV
+- `/work_edit` — Edit field worklog individual (title, description, status, priority, estimated_hours)
+- `/work_delete` — Hapus worklog permanent
+- `/search` — Cari worklog & stakeholder berdasarkan keyword
+- Bug fix: Gmail client async wrapping (`.execute()` via `asyncio.to_thread()`)
+- APScheduler integration: reminder check tiap 60 detik + Gmail polling tiap 120 detik
+- 3 missing intent handlers: STAKEHOLDER_INFO, INTERACTION_SUM, ASK_QUERY
+- 4 missing command handlers: work_status, stakeholder_info, remind, ask
+- Help text update mencakup semua command baru
+- Railway deployment + environment variable configuration
