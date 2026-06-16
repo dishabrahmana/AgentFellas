@@ -109,17 +109,25 @@ class DeepSeekClient:
         import json
         import re
 
-        json_match = re.search(r"\{.*\}", content, re.DOTALL)
-        if json_match:
+        raw = content.strip()
+        raw = re.sub(r'^```(?:json)?\s*', '', raw)
+        raw = re.sub(r'\s*```$', '', raw)
+
+        decoder = json.JSONDecoder()
+        start = raw.find('{')
+        if start >= 0:
             try:
-                return json.loads(json_match.group())
-            except json.JSONDecodeError:
+                obj, _ = decoder.raw_decode(raw, start)
+                response = obj.get("response", "").strip()
+                if not response.startswith("{") and not response.startswith('"'):
+                    return obj
+            except (json.JSONDecodeError, ValueError):
                 pass
 
         return {
             "intent": "GENERAL_CHAT",
             "entities": {},
-            "response": content.strip(),
+            "response": raw,
         }
 
 
