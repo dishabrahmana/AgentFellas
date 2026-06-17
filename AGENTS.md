@@ -56,6 +56,13 @@
 
 ## Riwayat Perubahan oleh AI Agent
 
+### 2026-06-17 — Google Drive/Sheets/Docs Integration
+- `integrations/google_drive_client.py` — client baru untuk baca Google Sheets, Docs, dan Drive via API
+- Gmail OAuth scopes diperluas: +drive.readonly, +spreadsheets.readonly, +documents.readonly
+- Google URL auto-detection di `messages.py` — kalau user kirim link Google Docs/Sheets, bot otomatis baca dan tampilkan isinya
+- `/gdoc <url>` — command manual untuk baca Google Docs/Sheets
+- `device_tracker.py` — baca active browser tab (Chrome/Safari/Arc) dengan URL
+
 ### 2026-06-16 — AI Personality Upgrade: Teman Curhat + Mentor
 - System prompt di `bot/ai/llm_client.py` diubah total — bot sekarang punya 3 peran: teman curhat (emotional intelligence), asisten pribadi (proaktif), mentor (saran & insight dari pengetahuan DeepSeek)
 - Temperature 0.7 → 0.8 (lebih natural, variatif)
