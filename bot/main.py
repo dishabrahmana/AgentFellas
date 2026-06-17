@@ -14,6 +14,7 @@ from telegram.ext import (
 from bot.handlers.commands import (
     ask,
     export_csv,
+    gdoc,
     health,
     help_command,
     list_actions,
@@ -87,6 +88,7 @@ def build_application() -> Application:
 
     app.add_handler(CommandHandler("export", export_csv))
     app.add_handler(CommandHandler("search", search))
+    app.add_handler(CommandHandler("gdoc", gdoc))
 
     # Message handler (natural language → AI)
     app.add_handler(

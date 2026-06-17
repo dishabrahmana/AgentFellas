@@ -73,6 +73,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         "*Lainnya:*\n"
         "/remind <teks> in <waktu> - Set reminder\n"
         "/search <kata kunci> - Cari worklog & stakeholder\n"
+        "/gdoc <link> - Baca Google Docs/Sheets\n"
         "/ask <pertanyaan> - Tanya AI\n"
         "/health - Cek status bot",
         parse_mode="Markdown",
@@ -510,3 +511,68 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             text += "\n(tidak ada hasil)"
 
         await update.message.reply_text(text, parse_mode="Markdown")
+
+
+async def gdoc(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    url = " ".join(context.args)
+    if not url:
+        await update.message.reply_text(
+            "Gunakan: /gdoc <link Google Docs/Sheets>\n"
+            "Contoh: /gdoc https://docs.google.com/spreadsheets/d/..."
+        )
+        return
+
+    from integrations.google_drive_client import google_drive_client
+
+    info = google_drive_client.extract_id_from_url(url)
+    if not info["id"]:
+        await update.message.reply_text(
+            "Link Google tidak valid. Pastikan link dari Google Docs, Sheets, atau Drive."
+        )
+        return
+
+    if not google_drive_client._initialized:
+        ok = await google_drive_client.initialize()
+        if not ok:
+            await update.message.reply_text(
+                "Google Drive belum terhubung. Pastikan GMAIL_CREDENTIALS_FILE sudah diatur."
+            )
+            return
+
+    await update.message.reply_text("⏳ Lagi baca file...")
+
+    file_name = await google_drive_client.get_file_name(info["id"])
+    name_str = f"**{file_name}**\n\n" if file_name else ""
+
+    if info["type"] == "sheet":
+        values = await google_drive_client.read_sheet(info["id"])
+        if not values:
+            await update.message.reply_text(
+                f"{name_str}Spreadsheet kosong atau tidak bisa dibaca.",
+                parse_mode="Markdown",
+            )
+            return
+        text = f"📊 {name_str}"
+        for i, row in enumerate(values[:20]):
+            text += " | ".join(str(c) for c in row) + "\n"
+        if len(values) > 20:
+            text += f"... dan {len(values) - 20} baris lagi"
+        await update.message.reply_text(text, parse_mode="Markdown")
+        return
+
+    if info["type"] == "doc":
+        doc_text = await google_drive_client.read_doc(info["id"])
+        if not doc_text:
+            await update.message.reply_text(
+                f"{name_str}Dokumen kosong atau tidak bisa dibaca.",
+                parse_mode="Markdown",
+            )
+            return
+        await update.message.reply_text(
+            f"📄 {name_str}{doc_text[:2000]}", parse_mode="Markdown"
+        )
+        return
+
+    await update.message.reply_text(
+        f"{name_str}Tipe file Google belum didukung.", parse_mode="Markdown"
+    )

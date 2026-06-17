@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 
 from telegram import Update
 from telegram.ext import ContextTypes
@@ -23,11 +24,58 @@ from utils.formatters import (
 from utils.date_utils import format_date
 
 
+GOOGLE_URL_PATTERNS = re.compile(
+    r"(https?://(?:docs|sheets|drive|docs)\.google\.com/(?:spreadsheets/d|document/d|file/d)/([a-zA-Z0-9_-]+))"
+)
+
+
+async def handle_google_url(url: str) -> str | None:
+    from integrations.google_drive_client import google_drive_client
+
+    info = google_drive_client.extract_id_from_url(url)
+    if not info["id"]:
+        return None
+
+    if not google_drive_client._initialized:
+        ok = await google_drive_client.initialize()
+        if not ok:
+            return "Google Drive belum terhubung. Pastikan GMAIL_CREDENTIALS_FILE sudah diatur."
+
+    file_name = await google_drive_client.get_file_name(info["id"])
+    name_str = f"**{file_name}**\n\n" if file_name else ""
+
+    if info["type"] == "sheet":
+        values = await google_drive_client.read_sheet(info["id"])
+        if not values:
+            return f"{name_str}Spreadsheet kosong atau tidak bisa dibaca."
+        text = f"📊 {name_str}"
+        for i, row in enumerate(values[:20]):
+            text += " | ".join(str(c) for c in row) + "\n"
+        if len(values) > 20:
+            text += f"... dan {len(values) - 20} baris lagi"
+        return text
+
+    if info["type"] == "doc":
+        text = await google_drive_client.read_doc(info["id"])
+        if not text:
+            return f"{name_str}Dokumen kosong atau tidak bisa dibaca."
+        return f"📄 {name_str}{text[:2000]}"
+
+    return f"{name_str}Tipe file Google belum didukung."
+
+
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     message = update.message.text
     user_id = str(user.id)
     chat_id = str(update.effective_chat.id)
+
+    google_match = re.search(GOOGLE_URL_PATTERNS, message)
+    if google_match:
+        result = await handle_google_url(google_match.group(1))
+        if result:
+            await update.message.reply_text(result, parse_mode="Markdown")
+            return
 
     async with async_session_factory() as session:
         user_session = await get_or_create_session(session, user_id, chat_id)
