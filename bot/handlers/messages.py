@@ -86,7 +86,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         entities = ai_result.get("entities", {})
 
         conv_history.append({"role": "user", "content": message})
-        conv_history.append({"role": "assistant", "content": json.dumps(ai_result)})
+        conv_history.append({"role": "assistant", "content": ai_result.get("response", "")})
         if len(conv_history) > 20:
             conv_history = conv_history[-20:]
 

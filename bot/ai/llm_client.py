@@ -118,9 +118,15 @@ class DeepSeekClient:
         if start >= 0:
             try:
                 obj, _ = decoder.raw_decode(raw, start)
-                response = obj.get("response", "").strip()
-                if not response.startswith("{") and not response.startswith('"'):
-                    return obj
+                response = obj.get("response", "")
+                if isinstance(response, str) and response.strip().startswith("{"):
+                    try:
+                        inner, _ = decoder.raw_decode(response.strip(), 0)
+                        if isinstance(inner, dict) and "response" in inner:
+                            obj["response"] = inner["response"]
+                    except (json.JSONDecodeError, ValueError):
+                        pass
+                return obj
             except (json.JSONDecodeError, ValueError):
                 pass
 
