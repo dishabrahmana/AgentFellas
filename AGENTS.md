@@ -56,10 +56,16 @@
 
 ## Riwayat Perubahan oleh AI Agent
 
+### 2026-06-24 — Natural Response Cleanup
+- System prompt di rewrite total — no markdown, no weird symbols, clean conversational output
+- `_clean_response()` — hapus artifact markdown (**bold**, *italic*, `code`, #, [links]) dari response
+- `_parse_response()` di-refactor jadi fungsi global + panggil _clean_response()
+- Prompt diformat ulang pake plain text (tanpa ###, **bold**, ---) biar LLM gak meniru format
+
 ### 2026-06-18 — Nested JSON Fix
 - `messages.py` — revert history ke teks-only (full JSON sebelumnya bikin LLM nested JSON)
 - `llm_client.py` — auto-unnest: kalo "response" field berisi JSON lagi, extract yang dalem
-- ```_parse_response()``` — hapus validasi startsWith yang salah, selalu return parsed obj
+- `_parse_response()` — hapus validasi startsWith yang salah, selalu return parsed obj
 
 ### 2026-06-17 — Google Drive/Sheets/Docs Integration
 - `integrations/google_drive_client.py` — client baru untuk baca Google Sheets, Docs, dan Drive via API
